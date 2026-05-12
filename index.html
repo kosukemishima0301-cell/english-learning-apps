@@ -439,6 +439,52 @@ body{
         <div class="ab-info" id="ab-info"></div>
       </div>
       <button class="generic-btn" onclick="addLog('shadow',0)" style="border-color:var(--accent);color:#a99fff">✓ シャドーイング完了として記録</button>
+
+      <!-- スクリプトエリア -->
+      <div style="margin-top:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div>
+            <span style="font-size:13px;font-weight:600;color:var(--text)">📄 スクリプト</span>
+            <span style="font-size:11px;color:var(--muted);margin-left:8px">TEDなどのスクリプトを貼り付けてください</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button onclick="clearScript()" style="
+              background:none;border:1px solid var(--border);border-radius:6px;
+              color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;
+              font-family:'Sora',sans-serif;-webkit-tap-highlight-color:transparent
+            ">クリア</button>
+            <button onclick="toggleScriptSize()" id="script-size-btn" style="
+              background:none;border:1px solid var(--border);border-radius:6px;
+              color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;
+              font-family:'Sora',sans-serif;-webkit-tap-highlight-color:transparent
+            ">大きく</button>
+          </div>
+        </div>
+        <textarea id="script-area"
+          placeholder="ここにスクリプトを貼り付け&#10;&#10;例）TED.comで「Read Transcript」→ 全文コピー → ここにペースト"
+          oninput="saveScript()"
+          style="
+            width:100%;height:200px;
+            background:var(--surface);
+            border:1px solid var(--border);
+            border-radius:10px;
+            color:var(--text2);
+            padding:14px 16px;
+            font-size:13px;
+            font-family:'Sora',sans-serif;
+            line-height:1.7;
+            resize:vertical;
+            outline:none;
+            transition:border-color .15s, height .2s;
+            -webkit-overflow-scrolling:touch;
+          "
+          onfocus="this.style.borderColor='var(--accent)'"
+          onblur="this.style.borderColor='var(--border)'"
+        ></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px">
+          <span style="font-size:10px;color:var(--muted)" id="script-char-count">0文字</span>
+        </div>
+      </div>
     </div>
 
     <!-- ダッシュボード -->
@@ -1181,6 +1227,47 @@ function updateDisplay() {
 function fmt(s){ return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
 
 /* ====================================================================
+   10.5 スクリプトエリア
+   ==================================================================== */
+let scriptExpanded = false;
+
+// スクリプトをlocalStorageに保存（自動保存）
+function saveScript() {
+  const text = document.getElementById('script-area').value;
+  try { localStorage.setItem('el_script', text); } catch(e){}
+  document.getElementById('script-char-count').textContent = text.length.toLocaleString() + '文字';
+}
+
+// 保存済みスクリプトを復元
+function loadScript() {
+  const text = localStorage.getItem('el_script') || '';
+  const area = document.getElementById('script-area');
+  if (area) {
+    area.value = text;
+    document.getElementById('script-char-count').textContent = text.length.toLocaleString() + '文字';
+  }
+}
+
+// スクリプトをクリア
+function clearScript() {
+  if (!document.getElementById('script-area').value) return;
+  if (confirm('スクリプトをクリアしますか？')) {
+    document.getElementById('script-area').value = '';
+    localStorage.removeItem('el_script');
+    document.getElementById('script-char-count').textContent = '0文字';
+  }
+}
+
+// テキストエリアの大きさを切り替え
+function toggleScriptSize() {
+  const area = document.getElementById('script-area');
+  const btn  = document.getElementById('script-size-btn');
+  scriptExpanded = !scriptExpanded;
+  area.style.height = scriptExpanded ? '500px' : '200px';
+  btn.textContent   = scriptExpanded ? '小さく' : '大きく';
+}
+
+/* ====================================================================
    11. Service Worker（PWA）
    ==================================================================== */
 if('serviceWorker' in navigator){
@@ -1201,6 +1288,7 @@ document.addEventListener('DOMContentLoaded', applyMobileLayout);
   loadFromLocal();
   buildWaveform();
   buildCards();
+  loadScript();
   buildManual();
   buildSettings();
   refreshDashboard();
