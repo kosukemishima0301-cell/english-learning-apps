@@ -625,7 +625,15 @@ function addLog(itemId, minutes, note) {
   const item = ITEMS.find(i => i.id === itemId);
   const name = item ? item.name : itemId;
   const mins = Math.round(minutes || 0);
-  logs.unshift({ id:itemId, name, time:new Date().toISOString(), minutes:mins, note:note||'' });
+  // ローカルタイムゾーンでISO文字列を生成（UTCではなく日本時間で保存）
+  const now = new Date();
+  const localISO = now.getFullYear()+'-'+
+    String(now.getMonth()+1).padStart(2,'0')+'-'+
+    String(now.getDate()).padStart(2,'0')+'T'+
+    String(now.getHours()).padStart(2,'0')+':'+
+    String(now.getMinutes()).padStart(2,'0')+':'+
+    String(now.getSeconds()).padStart(2,'0');
+  logs.unshift({ id:itemId, name, time:localISO, minutes:mins, note:note||'' });
   if (logs.length > 3000) logs = logs.slice(0,3000);
   saveToLocal();
   showFlash('✓ ' + name + (mins>0 ? '（'+mins+'分）':'' ) + ' を記録');
@@ -691,7 +699,15 @@ if (window.visualViewport) {
 let activeTimers = {};
 let timerTick    = null;
 
-const todayStr = () => new Date().toISOString().slice(0,10);
+// 日本時間（ローカルタイムゾーン）で今日の日付を返す
+// toISOString()はUTCなので使わない
+const todayStr = () => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+};
 
 function todayMinutes(id) {
   return logs.filter(l=>l.id===id && l.time.startsWith(todayStr())).reduce((s,l)=>s+(l.minutes||0),0);
@@ -855,7 +871,11 @@ function refreshDashboard() {
   const hm=document.getElementById('heatmap'); hm.innerHTML='';
   const now=new Date(), startDay=new Date(now); startDay.setDate(startDay.getDate()-111);
   const dayMap={};
-  logs.forEach(l=>{ const ds=l.time.slice(0,10); dayMap[ds]=(dayMap[ds]||0)+(l.minutes||1); });
+  logs.forEach(l=>{
+    // time がローカル形式("2026-05-08T07:30:00")かUTC形式("2026-05-08T07:30:00.000Z")か両対応
+    const ds = l.time.slice(0,10);
+    dayMap[ds]=(dayMap[ds]||0)+(l.minutes||1);
+  });
   let col=null;
   for(let i=0;i<=111;i++){
     const cur=new Date(startDay); cur.setDate(cur.getDate()+i);
